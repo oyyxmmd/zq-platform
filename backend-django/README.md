@@ -1,13 +1,5 @@
 ## 运行教程
 
-### 克隆项目
-
-```bash
-git clone https://gitee.com/fuadmin/fu-admin.git
-# 进入项目目录
-cd fu-admin/backend
-```
-
 ### 在 `config/env.py` 中配置数据库信息
 
 ```bash
@@ -52,8 +44,4 @@ python manage.py loaddata db_init.json
 
 ```bash
 python manage.py runserver 0.0.0.0:8000
-```
-
-```bash
-python manage.py dumpdata system --indent 4 > db_init.json
 ```
