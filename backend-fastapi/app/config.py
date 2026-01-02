@@ -121,8 +121,12 @@ class Settings(BaseSettings):
     def build_urls(self) -> "Settings":
         """自动拼接DATABASE_URL和REDIS_URL"""
         if not self.DATABASE_URL:
+            # 默认为PostgreSQL，如果端口是3306则认为是MySQL
+            should_use_mysql = self.DB_PORT == 3306
+            db_scheme = "mysql+aiomysql" if should_use_mysql else "postgresql+asyncpg"
+            
             self.DATABASE_URL = (
-                f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}"
+                f"{db_scheme}://{self.DB_USER}:{self.DB_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
             )
         if not self.REDIS_URL:

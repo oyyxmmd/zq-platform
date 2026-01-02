@@ -284,7 +284,7 @@ class AnnouncementService:
                 target_conditions.append(
                     and_(
                         Announcement.target_type == "dept",
-                        Announcement.target_ids.op('@>')([dept_id])
+                        func.json_contains(Announcement.target_ids, f'"{dept_id}"')
                     )
                 )
 
@@ -293,14 +293,14 @@ class AnnouncementService:
                 target_conditions.append(
                     and_(
                         Announcement.target_type == "role",
-                        Announcement.target_ids.op('@>')([role_id])
+                        func.json_contains(Announcement.target_ids, f'"{role_id}"')
                     )
                 )
 
         target_conditions.append(
             and_(
                 Announcement.target_type == "user",
-                Announcement.target_ids.op('@>')([user_id])
+                func.json_contains(Announcement.target_ids, f'"{user_id}"')
             )
         )
 
@@ -506,7 +506,7 @@ class AnnouncementService:
                 target_conditions.append(
                     and_(
                         Announcement.target_type == "dept",
-                        Announcement.target_ids.op('@>')([dept_id])
+                        func.json_contains(Announcement.target_ids, f'"{dept_id}"')
                     )
                 )
 
@@ -515,14 +515,14 @@ class AnnouncementService:
                 target_conditions.append(
                     and_(
                         Announcement.target_type == "role",
-                        Announcement.target_ids.op('@>')([role_id])
+                        func.json_contains(Announcement.target_ids, f'"{role_id}"')
                     )
                 )
 
         target_conditions.append(
             and_(
                 Announcement.target_type == "user",
-                Announcement.target_ids.op('@>')([user_id])
+                func.json_contains(Announcement.target_ids, f'"{user_id}"')
             )
         )
 

@@ -28,7 +28,7 @@ def upgrade() -> None:
     sa.Column('priority', sa.Integer(), nullable=True, comment='优先级: 0普通/1重要/2紧急'),
     sa.Column('is_top', sa.Boolean(), nullable=True, comment='是否置顶'),
     sa.Column('target_type', sa.String(length=20), nullable=True, comment='接收范围类型: all/dept/role/user'),
-    sa.Column('target_ids', postgresql.JSONB(astext_type=sa.Text()), nullable=True, comment='接收目标ID列表'),
+    sa.Column('target_ids', sa.JSON(), nullable=True, comment='接收目标ID列表'),
     sa.Column('publish_time', sa.DateTime(), nullable=True, comment='发布时间'),
     sa.Column('expire_time', sa.DateTime(), nullable=True, comment='过期时间'),
     sa.Column('publisher_id', sa.String(length=50), nullable=True, comment='发布人ID'),

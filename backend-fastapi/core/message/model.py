@@ -10,8 +10,7 @@
 """
 消息模型
 """
-from sqlalchemy import Column, String, Text, Integer, Boolean, DateTime, Index
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, String, Text, Integer, Boolean, DateTime, Index, JSON
 
 from app.base_model import BaseModel
 
@@ -61,7 +60,7 @@ class Announcement(BaseModel):
 
     # 接收范围
     target_type = Column(String(20), default="all", comment="接收范围类型: all/dept/role/user")
-    target_ids = Column(JSONB, default=list, comment="接收目标ID列表")
+    target_ids = Column(JSON, default=list, comment="接收目标ID列表")
 
     # 发布时间
     publish_time = Column(DateTime, nullable=True, comment="发布时间")
