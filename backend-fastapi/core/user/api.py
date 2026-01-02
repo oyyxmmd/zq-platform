@@ -62,11 +62,12 @@ async def get_user_list(
     email: Optional[str] = Query(None, description="邮箱"),
     user_status: Optional[int] = Query(None, alias="user_status", description="用户状态"),
     user_type: Optional[int] = Query(None, alias="user_type", description="用户类型"),
-    dept_id: Optional[str] = Query(None, alias="dept_ids", description="部门ID"),
+    dept_id: Optional[str] = Query(None, description="部门ID"),
     db: AsyncSession = Depends(get_db)
 ):
     """获取用户列表（分页）"""
     from core.user.model import User
+    from core.dept.service import DeptService
     
     filters = []
     if name:
@@ -82,7 +83,11 @@ async def get_user_list(
     if user_type is not None:
         filters.append(User.user_type == user_type)
     if dept_id:
-        filters.append(User.dept_id == dept_id)
+        # 获取部门及其子部门的所有ID
+        dept_ids = [dept_id]
+        descendants = await DeptService.get_descendants(db, dept_id)
+        dept_ids.extend([d.id for d in descendants])
+        filters.append(User.dept_id.in_(dept_ids))
     
     items, total = await UserService.get_list(db, page=page, page_size=page_size, filters=filters)
     return PaginatedResponse(

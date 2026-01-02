@@ -12,6 +12,9 @@
     "userName": "用户名",
     "account": "账号",
     "email": "邮箱",
-    "operation": "操作"
+    "operation": "操作",
+    "allDept": "全部部门",
+    "selectDept": "选择部门",
+    "loadFailed": "加载用户失败"
   }
 }

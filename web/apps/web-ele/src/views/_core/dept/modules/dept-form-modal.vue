@@ -176,7 +176,7 @@ async function onSubmit() {
   }
 }
 
-function open(data?: Dept) {
+function open(data?: Dept, parentId?: string) {
   visible.value = true;
   if (data) {
     formData.value = data;
@@ -184,6 +184,9 @@ function open(data?: Dept) {
   } else {
     formData.value = undefined;
     formApi.resetForm();
+    if (parentId) {
+      formApi.setValues({ parent_id: parentId });
+    }
   }
 }
 

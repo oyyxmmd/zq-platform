@@ -50,9 +50,9 @@ const selectedDepts = ref<Set<string>>(
   new Set(
     Array.isArray(props.modelValue)
       ? props.modelValue
-      : (props.modelValue
+      : props.modelValue
         ? [props.modelValue]
-        : []),
+        : [],
   ),
 );
 // 临时选择（用于 modal 中的选择，未确认前）
@@ -364,17 +364,26 @@ const flattenedTree = computed(() => renderTreeList(filteredDepts.value));
 
 // 处理部门选择
 const handleDeptSelect = (deptId: string) => {
+  const newSet = new Set(tempSelectedDepts.value);
   if (props.multiple) {
-    if (tempSelectedDepts.value.has(deptId)) {
-      tempSelectedDepts.value.delete(deptId);
+    if (newSet.has(deptId)) {
+      newSet.delete(deptId);
     } else {
-      tempSelectedDepts.value.add(deptId);
+      newSet.add(deptId);
     }
   } else {
     // 单选模式
-    tempSelectedDepts.value.clear();
-    tempSelectedDepts.value.add(deptId);
+    newSet.clear();
+    newSet.add(deptId);
   }
+  tempSelectedDepts.value = newSet;
+};
+
+// 移除临时标签
+const handleRemoveTempTag = (deptId: string) => {
+  const newSet = new Set(tempSelectedDepts.value);
+  newSet.delete(deptId);
+  tempSelectedDepts.value = newSet;
 };
 
 // 打开modal
@@ -400,9 +409,9 @@ const handleConfirm = () => {
 
   const value = props.multiple
     ? [...selectedDepts.value]
-    : (selectedDepts.value.size > 0
+    : selectedDepts.value.size > 0
       ? [...selectedDepts.value][0]
-      : '');
+      : '';
 
   emit('update:modelValue', value);
   emit('change', value);
@@ -414,8 +423,8 @@ const handleClear = (e?: MouseEvent) => {
   if (e) {
     e.stopPropagation();
   }
-  tempSelectedDepts.value.clear();
-  selectedDepts.value.clear();
+  tempSelectedDepts.value = new Set();
+  selectedDepts.value = new Set();
   const emptyValue = props.multiple ? [] : '';
   emit('update:modelValue', emptyValue);
   emit('change', emptyValue);
@@ -532,7 +541,7 @@ defineExpose({
       v-model="modalVisible"
       :title="$t('system.user.selectDept') || 'Select Departments'"
       width="45%"
-      :show-footer="false"
+      :show-footer="true"
       :show-fullscreen-button="false"
       @opened="handleModalOpened"
     >
@@ -550,11 +559,7 @@ defineExpose({
                 closable
                 type="info"
                 size="small"
-                @close="
-                  () => {
-                    tempSelectedDepts.delete(item.id);
-                  }
-                "
+                @close="handleRemoveTempTag(item.id)"
               >
                 {{ item.display }}
               </ElTag>
@@ -710,7 +715,6 @@ defineExpose({
     }
   }
 
-
   &-content {
     display: flex;
     flex-direction: column;
@@ -798,11 +802,10 @@ defineExpose({
       display: flex;
       align-items: center;
       height: 42px;
-      padding: 0 12px;
-      margin: 1px 0;
+      padding-right: 12px;
       cursor: pointer;
-      border-radius: 8px;
-      transition: all 0.2s ease;
+      border-radius: var(--radius-sm);
+      transition: background-color 0.2s;
 
       .dept-toggle {
         display: flex;

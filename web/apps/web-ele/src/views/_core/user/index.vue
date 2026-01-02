@@ -18,6 +18,7 @@ import {
 import { UserAvatar } from '#/components/user-avatar';
 import { useZqTable } from '#/components/zq-table';
 
+import DeptTree from '../dept/modules/dept-tree.vue';
 import {
   getGenderOptions,
   getLoginTypeOptions,
@@ -32,6 +33,7 @@ defineOptions({ name: 'SystemUser' });
 
 const formRef = ref<InstanceType<typeof Form>>();
 const selectedRows = ref<User[]>([]);
+const currentDeptId = ref<string>();
 
 // 状态映射
 const statusOptions = getStatusOptions();
@@ -49,6 +51,14 @@ function getTagType(value: any, options: any[]): TagType {
 function getTagLabel(value: any, options: any[]): string {
   const option = options.find((o) => o.value === value);
   return option?.label || String(value);
+}
+
+/**
+ * 部门选择事件
+ */
+function onDeptSelect(deptIds: string[] | undefined) {
+  currentDeptId.value = deptIds?.[0];
+  refreshGrid();
 }
 
 /**
@@ -195,6 +205,7 @@ const fetchUserList = async (params: any) => {
     name: params.form?.name,
     username: params.form?.username,
     last_login_type: params.form?.last_login_type,
+    dept_id: currentDeptId.value,
   });
   return {
     items: res.items,
@@ -244,88 +255,104 @@ function refreshGrid() {
 
 <template>
   <Page auto-content-height>
-    <Form ref="formRef" @success="refreshGrid" />
+    <div class="flex h-full">
+      <!-- 部门树 -->
+      <div class="w-1/6 min-w-[250px]">
+        <DeptTree @select="onDeptSelect" />
+      </div>
 
-    <Grid @selection-change="handleSelectionChange">
-      <!-- 工具栏操作 -->
-      <template #toolbar-actions>
-        <ElButton type="primary" :icon="Plus" @click="onCreate">
-          {{ $t('ui.actionTitle.create', [$t('user.name')]) }}
-        </ElButton>
-        <ElButton type="danger" plain @click="onBatchDelete">
-          {{ $t('user.batchDelete') }}
-          {{ selectedRows.length > 0 ? `(${selectedRows.length})` : '' }}
-        </ElButton>
-      </template>
+      <!-- 主内容区：用户列表 -->
+      <div class="w-5/6 flex-1">
+        <Form ref="formRef" @success="refreshGrid" />
 
-      <!-- 头像列 -->
-      <template #cell-avatar="{ row }">
-        <div class="flex items-center justify-center">
-          <UserAvatar
-            :user="row as any"
-            :size="34"
-            :font-size="16"
-            :shadow="false"
-          />
-        </div>
-      </template>
+        <Grid @selection-change="handleSelectionChange">
+          <!-- 工具栏操作 -->
+          <template #toolbar-actions>
+            <ElButton type="primary" :icon="Plus" @click="onCreate">
+              {{ $t('ui.actionTitle.create', [$t('user.name')]) }}
+            </ElButton>
+            <ElButton type="danger" plain @click="onBatchDelete">
+              {{ $t('user.batchDelete') }}
+              {{ selectedRows.length > 0 ? `(${selectedRows.length})` : '' }}
+            </ElButton>
+          </template>
 
-      <!-- 用户类型列 -->
-      <template #cell-user_type="{ row }">
-        <ElTag :type="getTagType(row.user_type, userTypeOptions)" size="small">
-          {{ getTagLabel(row.user_type, userTypeOptions) }}
-        </ElTag>
-      </template>
+          <!-- 头像列 -->
+          <template #cell-avatar="{ row }">
+            <div class="flex items-center justify-center">
+              <UserAvatar
+                :user="row as any"
+                :size="34"
+                :font-size="16"
+                :shadow="false"
+              />
+            </div>
+          </template>
 
-      <!-- 性别列 -->
-      <template #cell-gender="{ row }">
-        <ElTag :type="getTagType(row.gender, genderOptions)" size="small">
-          {{ getTagLabel(row.gender, genderOptions) }}
-        </ElTag>
-      </template>
+          <!-- 用户类型列 -->
+          <template #cell-user_type="{ row }">
+            <ElTag
+              :type="getTagType(row.user_type, userTypeOptions)"
+              size="small"
+            >
+              {{ getTagLabel(row.user_type, userTypeOptions) }}
+            </ElTag>
+          </template>
 
-      <!-- 状态列 -->
-      <template #cell-user_status="{ row }">
-        <ElTag :type="getTagType(row.user_status, statusOptions)" size="small">
-          {{ getTagLabel(row.user_status, statusOptions) }}
-        </ElTag>
-      </template>
+          <!-- 性别列 -->
+          <template #cell-gender="{ row }">
+            <ElTag :type="getTagType(row.gender, genderOptions)" size="small">
+              {{ getTagLabel(row.gender, genderOptions) }}
+            </ElTag>
+          </template>
 
-      <!-- 最后登录方式列 -->
-      <template #cell-last_login_type="{ row }">
-        <ElTag
-          v-if="row.last_login_type"
-          :type="getTagType(row.last_login_type, loginTypeOptions)"
-          size="small"
-        >
-          {{ getTagLabel(row.last_login_type, loginTypeOptions) }}
-        </ElTag>
-        <span v-else>-</span>
-      </template>
+          <!-- 状态列 -->
+          <template #cell-user_status="{ row }">
+            <ElTag
+              :type="getTagType(row.user_status, statusOptions)"
+              size="small"
+            >
+              {{ getTagLabel(row.user_status, statusOptions) }}
+            </ElTag>
+          </template>
 
-      <!-- 操作列 -->
-      <template #cell-actions="{ row }">
-        <ElButton link type="primary" :icon="Edit" @click="onEdit(row)">
-          {{ $t('common.edit') }}
-        </ElButton>
-        <ElButton
-          link
-          type="warning"
-          :icon="RotateCw"
-          @click="onResetPassword(row)"
-        >
-          {{ $t('user.resetPassword') }}
-        </ElButton>
-        <ElButton
-          v-if="row.id !== 'a0000000-0000-0000-0000-000000000001'"
-          link
-          type="danger"
-          :icon="Trash2"
-          @click="onDelete(row)"
-        >
-          {{ $t('common.delete') }}
-        </ElButton>
-      </template>
-    </Grid>
+          <!-- 最后登录方式列 -->
+          <template #cell-last_login_type="{ row }">
+            <ElTag
+              v-if="row.last_login_type"
+              :type="getTagType(row.last_login_type, loginTypeOptions)"
+              size="small"
+            >
+              {{ getTagLabel(row.last_login_type, loginTypeOptions) }}
+            </ElTag>
+            <span v-else>-</span>
+          </template>
+
+          <!-- 操作列 -->
+          <template #cell-actions="{ row }">
+            <ElButton link type="primary" :icon="Edit" @click="onEdit(row)">
+              {{ $t('common.edit') }}
+            </ElButton>
+            <ElButton
+              link
+              type="warning"
+              :icon="RotateCw"
+              @click="onResetPassword(row)"
+            >
+              {{ $t('user.resetPassword') }}
+            </ElButton>
+            <ElButton
+              v-if="row.id !== 'a0000000-0000-0000-0000-000000000001'"
+              link
+              type="danger"
+              :icon="Trash2"
+              @click="onDelete(row)"
+            >
+              {{ $t('common.delete') }}
+            </ElButton>
+          </template>
+        </Grid>
+      </div>
+    </div>
   </Page>
 </template>

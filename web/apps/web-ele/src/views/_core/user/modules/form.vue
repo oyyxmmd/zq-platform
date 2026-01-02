@@ -18,6 +18,7 @@ const emit = defineEmits<{
 const formData = ref<User>();
 const visible = ref(false);
 const confirmLoading = ref(false);
+const recordId = ref<string>();
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
@@ -34,9 +35,11 @@ const [Form, formApi] = useVbenForm({
 function open(data?: User) {
   visible.value = true;
   if (data) {
+    recordId.value = data.id;
     formData.value = data;
     formApi.setValues(formData.value);
   } else {
+    recordId.value = undefined;
     formData.value = undefined;
     formApi.resetForm();
   }
@@ -47,7 +50,7 @@ defineExpose({
 });
 
 const getDrawerTitle = computed(() =>
-  formData.value?.id
+  recordId.value
     ? $t('ui.actionTitle.edit', [$t('user.name')])
     : $t('ui.actionTitle.create', [$t('user.name')]),
 );
@@ -58,8 +61,8 @@ async function onSubmit() {
     confirmLoading.value = true;
     const data = await formApi.getValues<Omit<User, 'id'>>();
     try {
-      await (formData.value?.id
-        ? updateUserApi(formData.value.id, data)
+      await (recordId.value
+        ? updateUserApi(recordId.value, data)
         : createUserApi(data));
       visible.value = false;
       emit('success');

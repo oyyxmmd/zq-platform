@@ -107,8 +107,8 @@ async function loadUsers(isLoadMore = false) {
 
     // 根据数据源类型调用不同的API
     if (props.dataSource === 'dept' && props.sourceId) {
-      // 使用 getUserListApi 并传入 dept_ids
-      params.dept_ids = [props.sourceId];
+      // 使用 getUserListApi 并传入 dept_id
+      params.dept_id = props.sourceId;
       result = await getUserListApi(params);
     } else if (props.dataSource === 'post' && props.sourceId) {
       params.search = params.name;

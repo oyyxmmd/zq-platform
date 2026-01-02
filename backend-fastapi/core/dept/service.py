@@ -195,9 +195,16 @@ class DeptService(BaseService[Dept, DeptCreate, DeptUpdate]):
                         code=dept.code,
                         parent_id=dept.parent_id,
                         dept_type=dept.dept_type,
+                        dept_type_display=dept.get_dept_type_display(),
+                        phone=dept.phone,
+                        email=dept.email,
                         status=dept.status,
-                        level=dept.level,
                         sort=dept.sort,
+                        description=dept.description,
+                        lead_id=dept.lead_id,
+                        lead_name=dept.lead.name if dept.lead else None,
+                        level=dept.level,
+                        sys_create_datetime=dept.sys_create_datetime,
                         children=build_tree(dept.id)
                     )
                     children.append(node)

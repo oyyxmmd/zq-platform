@@ -131,9 +131,16 @@ class DeptTreeNode(BaseModel):
     code: Optional[str] = None
     parent_id: Optional[str] = None
     dept_type: str
+    dept_type_display: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
     status: bool
-    level: int
     sort: int = 0
+    description: Optional[str] = None
+    lead_id: Optional[str] = None
+    lead_name: Optional[str] = None
+    level: int
+    sys_create_datetime: Optional[datetime] = None
     children: List["DeptTreeNode"] = []
     
     model_config = ConfigDict(from_attributes=True)

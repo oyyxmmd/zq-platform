@@ -2,158 +2,163 @@
 import { ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
+import { Edit, Plus, Trash2 } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { ElButton, ElMessage, ElMessageBox } from 'element-plus';
+import { ElButton, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 
-import { addDeptUsersApi, removeDeptUsersApi } from '#/api/core/dept';
-import { UserListPanel } from '#/components/user-list-panel';
-import { UserSelector } from '#/components/zq-form/user-selector';
+import {
+  deleteDeptApi,
+  getDeptListApi,
+  getDeptTreeApi,
+} from '#/api/core/dept';
+import { useZqTable } from '#/components/zq-table';
 
-import DeptTree from './modules/dept-tree.vue';
+import { useDeptColumns, useSearchFormSchema } from './data';
+import DeptFormModal from './modules/dept-form-modal.vue';
 
 defineOptions({ name: 'SystemDept' });
 
-const currentDeptId = ref<string>();
-const tempSelectedUsers = ref<Set<string>>(new Set());
-const userListPanelRef = ref<InstanceType<typeof UserListPanel>>();
+const formRef = ref<InstanceType<typeof DeptFormModal>>();
+
+import { getStatusOptions } from '../user/data';
+
+const statusOptions = getStatusOptions();
+
+function getTagType(value: any, options: any[]): 'danger' | 'info' | 'primary' | 'success' | 'warning' {
+  const normalizedValue = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+  const option = options.find((o) => o.value === normalizedValue);
+  return (option?.type as any) || 'info';
+}
+
+function getTagLabel(value: any, options: any[]): string {
+  const normalizedValue = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+  const option = options.find((o) => o.value === normalizedValue);
+  return option?.label || String(value);
+}
+
+// 使用 ZqTable
+const [Grid, gridApi] = useZqTable({
+  gridOptions: {
+    columns: useDeptColumns(),
+    border: true,
+    stripe: true,
+    rowKey: 'id', // ElTable 树形结构必须
+    defaultExpandAll: true, // ElTable 默认展开所有
+    proxyConfig: {
+      autoLoad: true,
+      ajax: {
+        query: async () => {
+          return await getDeptTreeApi();
+        },
+      },
+    },
+    pagerConfig: {
+      enabled: false,
+    },
+    toolbarConfig: {
+      search: true,
+      refresh: true,
+      zoom: true,
+      custom: true,
+    },
+  },
+  formOptions: {
+    schema: useSearchFormSchema(),
+    showCollapseButton: false,
+    submitOnChange: false,
+  },
+});
 
 /**
- * 部门选择事件
+ * 创建根部门
  */
-function onDeptSelect(deptIds: string[] | undefined) {
-  currentDeptId.value = deptIds?.[0];
-  tempSelectedUsers.value.clear();
+function onCreate() {
+  formRef.value?.open();
 }
 
 /**
- * 处理用户选择
+ * 添加子部门
  */
-function handleUserSelect(userId: string, _user: any) {
-  if (tempSelectedUsers.value.has(userId)) {
-    tempSelectedUsers.value.delete(userId);
-  } else {
-    tempSelectedUsers.value.add(userId);
-  }
+function onAddSub(row: any) {
+  formRef.value?.open(undefined, row.id);
 }
 
 /**
- * 处理移除用户
+ * 编辑部门
  */
-function handleRemoveUser(userId: string) {
-  tempSelectedUsers.value.delete(userId);
+function onEdit(row: any) {
+  formRef.value?.open(row);
 }
 
 /**
- * 新增用户到部门（作为 UserSelector 的 onConfirm 回调）
+ * 删除部门
  */
-async function handleAddUsers(userIds: string | string[]) {
-  if (!currentDeptId.value) {
-    ElMessage.warning($t('dept.selectDeptFirst') || '请先选择部门');
-    throw new Error('请先选择部门');
-  }
-
-  const userIdsArray = Array.isArray(userIds) ? userIds : [userIds];
-
-  if (userIdsArray.length === 0) {
-    ElMessage.warning($t('dept.selectUsersFirst') || '请先选择用户');
-    throw new Error('请先选择用户');
-  }
-
-  await addDeptUsersApi(currentDeptId.value, {
-    user_ids: userIdsArray,
-  });
-
-  ElMessage.success($t('dept.addUsersSuccess') || '添加成功');
-  // 刷新用户列表
-  userListPanelRef.value?.reload();
-}
-
-/**
- * 从部门删除用户
- */
-async function handleRemoveUsers() {
-  if (!currentDeptId.value) {
-    ElMessage.warning($t('dept.selectDeptFirst') || '请先选择部门');
-    return;
-  }
-
-  if (tempSelectedUsers.value.size === 0) {
-    ElMessage.warning($t('dept.selectUsersFirst') || '请先选择用户');
-    return;
-  }
-
-  const userIds = [...tempSelectedUsers.value];
-  const confirmMessage =
-    $t('dept.removeUsersConfirm', [tempSelectedUsers.value.size]) ||
-    `确定要删除选中的 ${tempSelectedUsers.value.size} 个用户吗？`;
-
-  try {
-    await ElMessageBox.confirm(confirmMessage, $t('common.delete') || '删除', {
-      confirmButtonText: $t('common.confirm') || '确定',
-      cancelButtonText: $t('common.cancel') || '取消',
+function onDelete(row: any) {
+  ElMessageBox.confirm(
+    $t('ui.actionMessage.deleteConfirm', [row.name]),
+    $t('common.delete'),
+    {
+      confirmButtonText: $t('common.confirm'),
+      cancelButtonText: $t('common.cancel'),
       type: 'warning',
+    },
+  )
+    .then(async () => {
+      try {
+        await deleteDeptApi(row.id);
+        ElMessage.success($t('ui.actionMessage.deleteSuccess', [row.name]));
+        refreshGrid();
+      } catch {
+        // 错误已由请求拦截器处理
+      }
+    })
+    .catch(() => {
+      // 用户取消
     });
+}
 
-    await removeDeptUsersApi(currentDeptId.value, {
-      user_ids: userIds,
-    });
-    ElMessage.success($t('dept.removeUsersSuccess') || '删除成功');
-    tempSelectedUsers.value.clear();
-    // 刷新用户列表
-    userListPanelRef.value?.reload();
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('Failed to remove users:', error);
-      ElMessage.error($t('dept.removeUsersFailed') || '删除失败');
-    }
-  }
+/**
+ * 刷新表格
+ */
+function refreshGrid() {
+  gridApi.reload();
 }
 </script>
 
 <template>
   <Page auto-content-height>
-    <div class="flex h-full">
-      <!-- 部门树 -->
-      <div class="w-1/6">
-        <DeptTree @select="onDeptSelect" />
-      </div>
+    <div class="flex h-full w-full flex-col p-4">
+      <DeptFormModal ref="formRef" @success="refreshGrid" />
 
-      <!-- 主内容区：用户列表 -->
-      <div class="w-5/6">
-        <UserListPanel
-          ref="userListPanelRef"
-          :data-source="currentDeptId ? 'dept' : 'all'"
-          :source-id="currentDeptId"
-          :temp-selected-users="tempSelectedUsers"
-          :filterable="true"
-          :multiple="true"
-          :selectable="true"
-          :show-selected-tags="false"
-          :show-border="false"
-          @user-select="handleUserSelect"
-          @remove-user="handleRemoveUser"
-        >
-          <template #title>
-            <div class="flex items-center gap-2">
-              <UserSelector
-                :multiple="true"
-                :disabled="!currentDeptId"
-                display-mode="button"
-                :placeholder="$t('common.add') || '新增'"
-                :on-confirm="handleAddUsers"
-              />
-              <ElButton
-                type="danger"
-                :disabled="!currentDeptId || tempSelectedUsers.size === 0"
-                @click="handleRemoveUsers"
-              >
-                {{ $t('common.delete') || '删除' }}
-              </ElButton>
-            </div>
-          </template>
-        </UserListPanel>
-      </div>
+      <Grid class="flex-1">
+        <!-- 工具栏操作 -->
+        <template #toolbar-actions>
+          <ElButton type="primary" :icon="Plus" @click="onCreate">
+            {{ $t('ui.actionTitle.create', [$t('dept.deptName') || '部门']) }}
+          </ElButton>
+        </template>
+
+        <!-- 状态列 -->
+        <template #cell-status="{ row }">
+          <ElTag :type="getTagType(row.status, statusOptions)" size="small">
+            {{ getTagLabel(row.status, statusOptions) }}
+          </ElTag>
+        </template>
+
+        <!-- 操作列 -->
+        <template #cell-actions="{ row }">
+          <ElButton link type="primary" size="small" :icon="Edit" @click="onEdit(row)">
+            {{ $t('common.edit') || '编辑' }}
+          </ElButton>
+          <ElButton link type="primary" size="small" :icon="Plus" @click="onAddSub(row)">
+            {{ $t('dept.addChildDept') || '添加子部门' }}
+          </ElButton>
+          <ElButton link type="danger" size="small" :icon="Trash2" @click="onDelete(row)">
+            {{ $t('common.delete') || '删除' }}
+          </ElButton>
+        </template>
+      </Grid>
     </div>
   </Page>
 </template>
